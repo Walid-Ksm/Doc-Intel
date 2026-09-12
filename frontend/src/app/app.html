@@ -1,0 +1,226 @@
+<div class="app-shell">
+  <!-- Atmospheric Multi-Layer Background -->
+  <div class="ambient-background-container" aria-hidden="true">
+    <!-- Layer 1: Radial Canvas Depth -->
+    <div class="bg-radial-base"></div>
+
+    <!-- Layer 2: Animated Ambient Light Blobs -->
+    <div class="blob blob-primary"></div>
+    <div class="blob blob-secondary"></div>
+    <div class="blob blob-tertiary"></div>
+
+    <!-- Layer 3: Technical Grid Overlay -->
+    <div class="bg-grid-overlay"></div>
+  </div>
+
+  <!-- Glassmorphic Top Navigation -->
+  <header class="app-header">
+    <div class="header-inner">
+      <!-- Brand Logo -->
+      <a routerLink="/" class="brand-logo" title="DocIntelligence Home">
+        <div class="logo-icon-wrapper">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name gradient-text-headline">DocIntelligence</span>
+          <span class="brand-badge code-mono">RAG AI</span>
+        </div>
+      </a>
+
+      <!-- Navigation Tabs (Hidden on Landing Page) -->
+      @if (!isLandingPage()) {
+        <nav class="nav-links">
+          <a
+            routerLink="/dashboard"
+            routerLinkActive="active-nav"
+            class="nav-link"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="16" height="16">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Dashboard</span>
+          </a>
+
+          <a
+            routerLink="/documents"
+            routerLinkActive="active-nav"
+            class="nav-link"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="16" height="16">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <span>Documents</span>
+          </a>
+
+          <a
+            routerLink="/search"
+            routerLinkActive="active-nav"
+            class="nav-link"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="16" height="16">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <span>AI Chat &amp; RAG</span>
+          </a>
+
+          @if (isAdmin()) {
+            <a
+              routerLink="/reports"
+              routerLinkActive="active-nav"
+              class="nav-link admin-nav-link"
+              title="System Analytics & Health Reports"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="16" height="16">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+              <span>Reports</span>
+              <span class="nav-admin-badge">Admin</span>
+            </a>
+          }
+        </nav>
+      }
+
+      <!-- Right Header Actions -->
+      <div class="header-right">
+        @if (isLandingPage() && !keycloak.isAuthenticated()) {
+          <button
+            type="button"
+            (click)="keycloak.login()"
+            class="header-login-btn"
+            title="Sign in to DocIntelligence"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+              <polyline points="10 17 15 12 10 7"></polyline>
+              <line x1="15" y1="12" x2="3" y2="12"></line>
+            </svg>
+            <span>Login</span>
+          </button>
+        } @else {
+          <!-- User Profile Dropdown Container -->
+          <div class="profile-dropdown-container">
+            <button
+              type="button"
+              (click)="toggleProfileDropdown($event)"
+              class="header-profile-btn"
+              [class.active-dropdown]="isProfileDropdownOpen()"
+              title="Account Menu & Settings"
+              [attr.aria-expanded]="isProfileDropdownOpen()"
+            >
+              <div class="profile-avatar-mini">
+                <span>{{ keycloak.userInitials() }}</span>
+                <span class="status-indicator-dot" title="Session Active"></span>
+              </div>
+              <span class="profile-name-mini">{{ keycloak.userProfile()?.username || 'Account' }}</span>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                width="12"
+                height="12"
+                class="profile-arrow-icon"
+                [class.rotated]="isProfileDropdownOpen()"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+
+            <!-- Dropdown Menu Card -->
+            @if (isProfileDropdownOpen()) {
+              <div class="profile-dropdown-menu" (click)="$event.stopPropagation()">
+                <!-- User Info Header -->
+                <div class="dropdown-header">
+                  <div class="dropdown-avatar">
+                    <span>{{ keycloak.userInitials() }}</span>
+                  </div>
+                  <div class="dropdown-user-info">
+                    <span class="dropdown-user-name">
+                      {{ keycloak.userProfile()?.first_name ? (keycloak.userProfile()?.first_name + ' ' + (keycloak.userProfile()?.last_name || '')) : (keycloak.userProfile()?.username || 'doc-user') }}
+                    </span>
+                    <span class="dropdown-user-email">
+                      {{ keycloak.userProfile()?.email || (keycloak.userProfile()?.username + '@doc-intelligence.local') }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="dropdown-divider"></div>
+
+                <!-- Navigation Options -->
+                <div class="dropdown-items">
+                  <a
+                    routerLink="/profile"
+                    (click)="closeProfileDropdown()"
+                    class="dropdown-item"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="16" height="16">
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    <div class="dropdown-item-content">
+                      <span class="item-title">Settings & Profile</span>
+                      <span class="item-desc">User ID, realm permissions & roles</span>
+                    </div>
+                  </a>
+
+                  <a
+                    routerLink="/dashboard"
+                    (click)="closeProfileDropdown()"
+                    class="dropdown-item"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="16" height="16">
+                      <rect x="3" y="3" width="7" height="7"></rect>
+                      <rect x="14" y="3" width="7" height="7"></rect>
+                      <rect x="14" y="14" width="7" height="7"></rect>
+                      <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <div class="dropdown-item-content">
+                      <span class="item-title">Dashboard</span>
+                      <span class="item-desc">Metrics & analytics</span>
+                    </div>
+                  </a>
+                </div>
+
+                <div class="dropdown-divider"></div>
+
+                <!-- Direct Logout Button -->
+                <button
+                  type="button"
+                  (click)="logout()"
+                  class="dropdown-item dropdown-item-logout"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="16" height="16">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  <div class="dropdown-item-content">
+                    <span class="item-title">Log Out</span>
+                  </div>
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </header>
+
+  <!-- Routed Screen Content -->
+  <main class="app-main">
+    <router-outlet></router-outlet>
+  </main>
+</div>

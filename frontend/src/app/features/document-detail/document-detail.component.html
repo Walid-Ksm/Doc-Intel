@@ -1,0 +1,309 @@
+<div class="page-container">
+  <!-- Top Navigation & Actions -->
+  <div class="top-nav">
+    <a routerLink="/documents" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      <span>Back to Documents</span>
+    </a>
+
+    @if (document()) {
+      <div class="top-actions">
+        <button type="button" class="btn btn-secondary" (click)="fetchDetail(); fetchExtraction()" title="Refresh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" [class.spin]="isLoading() || isLoadingExtraction()">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+          <span>Refresh</span>
+        </button>
+
+        <button type="button" class="btn btn-danger" (click)="openDeleteModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          <span>Delete</span>
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ error() }}</span>
+      <button type="button" class="btn-retry" (click)="fetchDetail(); fetchExtraction()">Retry</button>
+    </div>
+  }
+
+  <!-- Loading Skeleton -->
+  @if (isLoading()) {
+    <div class="detail-split-layout">
+      <div class="detail-card skeleton-card">
+        <div class="skeleton-header skeleton"></div>
+        <div class="skeleton-grid">
+          @for (i of [1, 2, 3, 4, 5]; track i) {
+            <div class="skeleton-item skeleton"></div>
+          }
+        </div>
+      </div>
+      <div class="markdown-card skeleton-card">
+        <div class="skeleton-header skeleton"></div>
+        <div class="skeleton-body skeleton"></div>
+      </div>
+    </div>
+  } @else if (document(); as doc) {
+    <!-- Side-by-Side Split View -->
+    <div class="detail-split-layout">
+      
+      <!-- Left Column: Document Metadata & Controls -->
+      <div class="detail-left-pane">
+        <div class="detail-card">
+          <div class="card-header">
+            <div class="header-icon-wrapper">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            </div>
+            <div class="header-content">
+              <h1 class="document-title">{{ doc.file_name }}</h1>
+              <div class="header-meta">
+                <app-status-badge [status]="doc.status"></app-status-badge>
+                <span class="version-tag code-mono">v{{ doc.version }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- FAILED Alert -->
+          @if (doc.status === 'FAILED' && doc.error_message) {
+            <div class="failed-alert">
+              <div class="alert-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+              <div class="alert-content">
+                <h4>Processing Error</h4>
+                <p class="code-mono">{{ doc.error_message }}</p>
+              </div>
+            </div>
+          }
+
+          <!-- Metadata Attributes -->
+          <div class="metadata-grid">
+            <div class="meta-field">
+              <span class="field-label">Document ID</span>
+              <div class="field-value id-value">
+                <span class="code-mono doc-id-text">{{ doc.document_id }}</span>
+                <button
+                  type="button"
+                  class="btn-copy"
+                  (click)="copyDocumentId()"
+                  title="Copy Document ID"
+                >
+                  @if (copiedId()) {
+                    <span class="copied-label code-mono">Copied</span>
+                  } @else {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                  }
+                </button>
+              </div>
+            </div>
+
+            <div class="meta-field">
+              <span class="field-label">Processing Stage</span>
+              <div class="field-value">
+                <app-status-badge [status]="doc.status"></app-status-badge>
+              </div>
+            </div>
+
+            <div class="meta-field">
+              <span class="field-label">Vector Indexing State</span>
+              <div class="field-value">
+                @if (doc.status === 'INDEXED') {
+                  <span class="text-emerald">Indexed & Vectorized in pgvector</span>
+                } @else if (doc.status === 'FAILED') {
+                  <span class="text-rose">Pipeline Interrupted</span>
+                } @else {
+                  <span class="text-amber">Extracting & Vectorizing...</span>
+                }
+              </div>
+            </div>
+
+            <div class="meta-field">
+              <span class="field-label">Created At</span>
+              <span class="field-value code-mono">
+                {{ doc.created_at | date:'yyyy-MM-dd HH:mm:ss' }}
+              </span>
+            </div>
+
+            <div class="meta-field">
+              <span class="field-label">Last Updated</span>
+              <span class="field-value code-mono">
+                {{ doc.updated_at | date:'yyyy-MM-dd HH:mm:ss' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Extracted Markdown Content Viewer -->
+      <div class="detail-right-pane">
+        <div class="markdown-card">
+          <div class="markdown-card-header">
+            <div class="markdown-title-group">
+              <div class="title-with-badge">
+                <h2 class="markdown-section-title">Extracted Markdown</h2>
+                <span class="engine-badge code-mono">
+                  {{ extraction()?.extraction_method || 'DOCLING OCR' }}
+                </span>
+              </div>
+              @if (extraction()?.extracted_text) {
+                <span class="stats-counter code-mono">
+                  {{ wordCount() }} words • {{ charCount() }} characters
+                </span>
+              }
+            </div>
+
+            <div class="markdown-actions">
+              <!-- View Mode Switcher -->
+              <div class="view-toggle-group">
+                <button
+                  type="button"
+                  class="btn-toggle"
+                  [class.active]="viewMode() === 'formatted'"
+                  (click)="setViewMode('formatted')"
+                  title="Rendered Markdown View"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <span>Rendered</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn-toggle"
+                  [class.active]="viewMode() === 'raw'"
+                  (click)="setViewMode('raw')"
+                  title="Raw Markdown Source"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                  </svg>
+                  <span>Raw</span>
+                </button>
+              </div>
+
+              <!-- Copy Markdown Button -->
+              @if (extraction()?.extracted_text) {
+                <button
+                  type="button"
+                  class="btn-copy-md"
+                  (click)="copyMarkdownText()"
+                  title="Copy Full Markdown"
+                >
+                  @if (copiedMarkdown()) {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" width="14" height="14">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span class="text-emerald code-mono">Copied!</span>
+                  } @else {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <span>Copy Markdown</span>
+                  }
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Markdown Content Body -->
+          <div class="markdown-content-body">
+            @if (isLoadingExtraction()) {
+              <div class="markdown-loading-state">
+                <div class="loading-spinner"></div>
+                <p class="text-muted">Fetching extracted markdown structure...</p>
+              </div>
+            } @else if (doc.status === 'PENDING' || doc.status === 'PROCESSING') {
+              <div class="markdown-processing-state">
+                <div class="pulse-ring-large"></div>
+                <h3>OCR Extraction in Progress</h3>
+                <p class="text-muted">
+                  Docling engine is currently extracting layout, headings, and tabular structures from this document.
+                </p>
+              </div>
+            } @else if (extraction()?.extracted_text; as text) {
+              @if (viewMode() === 'formatted') {
+                <div class="markdown-rendered-view">
+                  <pre class="markdown-prose">{{ text }}</pre>
+                </div>
+              } @else {
+                <div class="markdown-raw-view">
+                  <pre class="code-mono raw-code-block">{{ text }}</pre>
+                </div>
+              }
+            } @else {
+              <div class="markdown-empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="42" height="42">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <line x1="9" y1="15" x2="15" y2="15"></line>
+                </svg>
+                <p class="text-muted">No text extraction results found for this document.</p>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+    </div>
+  }
+</div>
+
+<!-- Delete Confirmation Modal -->
+@if (isDeleteModalOpen()) {
+  <div class="modal-backdrop" (click)="cancelDelete()">
+    <div class="delete-modal-card" (click)="$event.stopPropagation()">
+      <div class="delete-icon-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+      <h3>Delete Document</h3>
+      <p class="delete-modal-text">
+        Are you sure you want to permanently delete
+        <strong class="text-white">{{ document()?.file_name }}</strong>?
+        This action cannot be undone.
+      </p>
+      <div class="delete-modal-actions">
+        <button type="button" class="btn btn-secondary" (click)="cancelDelete()" [disabled]="isDeleting()">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-danger" (click)="executeDelete()" [disabled]="isDeleting()">
+          @if (isDeleting()) {
+            Deleting...
+          } @else {
+            Confirm Delete
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

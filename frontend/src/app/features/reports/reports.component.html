@@ -1,0 +1,552 @@
+<div class="reports-page">
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="header-titles">
+      <div class="badge-pill">
+        <span class="pulse-indicator"></span>
+        <span>ADMIN OBSERVABILITY</span>
+      </div>
+      <h1 class="page-title gradient-text-headline">Operational Reports</h1>
+      <p class="page-subtitle">
+        System-wide ingestion telemetry, pipeline throughput, and operational health metrics.
+      </p>
+    </div>
+
+    <!-- Header Actions & Tabs -->
+    <div class="header-actions">
+      <!-- Tab Controls -->
+      <div class="tab-switcher" role="tablist">
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === 'activity'"
+          (click)="setTab('activity')"
+          role="tab"
+          [attr.aria-selected]="activeTab() === 'activity'"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span>Activity</span>
+        </button>
+
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === 'health'"
+          (click)="setTab('health')"
+          role="tab"
+          [attr.aria-selected]="activeTab() === 'health'"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+          </svg>
+          <span>System Health</span>
+          @if (stuckCount() > 0) {
+            <span class="stuck-badge">{{ stuckCount() }}</span>
+          }
+        </button>
+      </div>
+
+      <!-- Refresh Button -->
+      <button
+        type="button"
+        class="refresh-btn"
+        (click)="loadAllReports(true)"
+        [disabled]="isLoading() || isRefreshing()"
+        title="Refresh data from Spring Boot"
+      >
+        <svg
+          [class.spinning]="isRefreshing()"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          width="16"
+          height="16"
+        >
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+        </svg>
+        <span>{{ isRefreshing() ? 'Refreshing...' : 'Refresh' }}</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Error Alert Banner -->
+  @if (error()) {
+    <div class="error-banner">
+      <div class="error-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div class="error-content">
+        <h4>Service Communication Error</h4>
+        <p>{{ error() }}</p>
+      </div>
+      <button type="button" class="retry-btn" (click)="loadAllReports()">
+        Retry
+      </button>
+    </div>
+  }
+
+  <!-- Loading State Skeleton -->
+  @if (isLoading()) {
+    <div class="skeleton-grid">
+      <div class="skeleton-card card-kpi"></div>
+      <div class="skeleton-card card-kpi"></div>
+      <div class="skeleton-card card-kpi"></div>
+      <div class="skeleton-card card-kpi"></div>
+    </div>
+    <div class="skeleton-block"></div>
+  } @else if (!error()) {
+
+    <!-- ================================================================= -->
+    <!-- TAB 1: ACTIVITY REPORT                                            -->
+    <!-- ================================================================= -->
+    @if (activeTab() === 'activity' && activityData()) {
+      <div class="tab-content fade-in">
+        <!-- Top KPI Cards -->
+        <div class="kpi-grid">
+          <div class="glass-card kpi-card">
+            <div class="kpi-card-header">
+              <span class="kpi-label">Total Ingested</span>
+              <div class="kpi-icon-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value code-mono">{{ totalDocuments() | number }}</div>
+            <div class="kpi-footer">
+              <span class="kpi-subtext">Lifetime processed documents</span>
+            </div>
+          </div>
+
+          <div class="glass-card kpi-card kpi-card-success">
+            <div class="kpi-card-header">
+              <span class="kpi-label">Indexed Successfully</span>
+              <div class="kpi-icon-badge badge-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value code-mono text-success">{{ indexedCount() | number }}</div>
+            <div class="kpi-footer">
+              <span class="kpi-subtext">{{ indexedRate() }}% completion rate</span>
+            </div>
+          </div>
+
+          <div class="glass-card kpi-card">
+            <div class="kpi-card-header">
+              <span class="kpi-label">Currently In-Flight</span>
+              <div class="kpi-icon-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value code-mono text-accent">{{ inFlightCount() }}</div>
+            <div class="kpi-footer">
+              <span class="kpi-subtext">Pending, Processing, or Indexing</span>
+            </div>
+          </div>
+
+          <div class="glass-card kpi-card" [class.kpi-card-danger]="failedCount() > 0">
+            <div class="kpi-card-header">
+              <span class="kpi-label">Failed / Errored</span>
+              <div class="kpi-icon-badge" [class.badge-danger]="failedCount() > 0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value code-mono" [class.text-danger]="failedCount() > 0">
+              {{ failedCount() }}
+            </div>
+            <div class="kpi-footer">
+              <span class="kpi-subtext">Documents requiring attention</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pipeline Funnel Breakdown -->
+        <section class="glass-card section-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Processing Pipeline Funnel</h2>
+              <p class="card-description">
+                Document distribution across extraction and vectorization stages
+              </p>
+            </div>
+            <div class="code-mono queue-indicator">
+              Broker: <span class="text-cyan">Celery + Redis</span>
+            </div>
+          </div>
+
+          @if (totalDocuments() > 0) {
+            <!-- Segmented Progress Bar -->
+            <div class="progress-bar-container" title="Status Distribution">
+              @if (getStatusCount('INDEXED') > 0) {
+                <div
+                  class="bar-segment seg-indexed"
+                  [style.width.%]="getStatusPercentage('INDEXED')"
+                  [title]="'Indexed: ' + getStatusCount('INDEXED') + ' (' + getStatusPercentage('INDEXED') + '%)'"
+                ></div>
+              }
+              @if (getStatusCount('EXTRACTED') + getStatusCount('INDEXING') > 0) {
+                <div
+                  class="bar-segment seg-indexing"
+                  [style.width.%]="getStatusPercentage('EXTRACTED') + getStatusPercentage('INDEXING')"
+                  [title]="'Vectorizing / Extracted: ' + (getStatusCount('EXTRACTED') + getStatusCount('INDEXING'))"
+                ></div>
+              }
+              @if (getStatusCount('PROCESSING') > 0) {
+                <div
+                  class="bar-segment seg-processing"
+                  [style.width.%]="getStatusPercentage('PROCESSING')"
+                  [title]="'Processing (OCR): ' + getStatusCount('PROCESSING')"
+                ></div>
+              }
+              @if (getStatusCount('PENDING') > 0) {
+                <div
+                  class="bar-segment seg-pending"
+                  [style.width.%]="getStatusPercentage('PENDING')"
+                  [title]="'Pending: ' + getStatusCount('PENDING')"
+                ></div>
+              }
+              @if (getStatusCount('FAILED') > 0) {
+                <div
+                  class="bar-segment seg-failed"
+                  [style.width.%]="getStatusPercentage('FAILED')"
+                  [title]="'Failed: ' + getStatusCount('FAILED')"
+                ></div>
+              }
+            </div>
+
+            <!-- Breakdown Chips Grid -->
+            <div class="status-chips-grid">
+              @for (key of funnelKeys; track key) {
+                <div class="status-chip">
+                  <div class="chip-left">
+                    <span class="chip-dot" [ngClass]="'dot-' + key.toLowerCase()"></span>
+                    <span class="chip-name">{{ key }}</span>
+                  </div>
+                  <div class="chip-right code-mono">
+                    <span class="chip-count">{{ getStatusCount(key) }}</span>
+                    <span class="chip-pct text-muted">({{ getStatusPercentage(key) }}%)</span>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-status-state">
+              <p class="text-muted">No documents ingested yet.</p>
+            </div>
+          }
+        </section>
+
+        <!-- Two Column Grid: Daily Trend & Top Users -->
+        <div class="dual-grid">
+          <!-- Daily Ingestion Trend (30 Days) -->
+          <section class="glass-card section-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">30-Day Ingestion Trend</h2>
+                <p class="card-description">Daily document volume submitted for processing</p>
+              </div>
+            </div>
+
+            <div class="trend-chart-wrapper">
+              <div class="trend-chart">
+                @for (day of activityData()?.dailyTrend ?? []; track day.date) {
+                  @let barPct = (day.count / maxDailyCount()) * 100;
+                  <div class="trend-bar-col" [title]="day.date + ': ' + day.count + ' documents'">
+                    <div class="bar-value-tooltip">{{ day.count }}</div>
+                    <div class="bar-track">
+                      <div
+                        class="bar-fill"
+                        [style.height.%]="barPct > 0 ? (barPct < 4 ? 4 : barPct) : 0"
+                        [class.has-data]="day.count > 0"
+                      ></div>
+                    </div>
+                    <div class="bar-label">{{ day.date | date:'dd' }}</div>
+                  </div>
+                }
+              </div>
+              <div class="trend-footer">
+                <span>30 days ago</span>
+                <span>Today</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Top Users Leaderboard -->
+          <section class="glass-card section-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Most Active Users</h2>
+                <p class="card-description">Top contributors by document volume</p>
+              </div>
+            </div>
+
+            <div class="users-list">
+              @if ((activityData()?.topUsers?.length ?? 0) === 0) {
+                <div class="empty-list">No user activity recorded yet.</div>
+              } @else {
+                @for (user of activityData()?.topUsers ?? []; track user.email; let i = $index) {
+                  @let userPct = (user.documentCount / maxUserCount()) * 100;
+                  <div class="user-row">
+                    <div class="user-rank">#{{ i + 1 }}</div>
+                    <div class="user-avatar">{{ getUserInitials(user.email) }}</div>
+                    <div class="user-details">
+                      <div class="user-email" [title]="user.email">{{ user.email }}</div>
+                      <div class="user-bar-track">
+                        <div class="user-bar-fill" [style.width.%]="userPct"></div>
+                      </div>
+                    </div>
+                    <div class="user-count">
+                      <span class="count-num">{{ user.documentCount }}</span>
+                      <span class="count-label">docs</span>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          </section>
+        </div>
+      </div>
+    }
+
+    <!-- ================================================================= -->
+    <!-- TAB 2: SYSTEM HEALTH REPORT                                       -->
+    <!-- ================================================================= -->
+    @if (activeTab() === 'health' && healthData()) {
+      <div class="tab-content fade-in">
+        <!-- Health Overview KPI Grid -->
+        <div class="kpi-grid">
+          <div class="glass-card kpi-card">
+            <div class="kpi-card-header">
+              <span class="kpi-label">Average Processing Duration</span>
+              <div class="kpi-icon-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value code-mono text-accent">
+              {{ formatDuration(avgProcessingTime()) }}
+            </div>
+            <div class="kpi-footer">
+              <span class="kpi-subtext">Queue wait + OCR extraction + Vector indexing</span>
+            </div>
+          </div>
+
+          <div class="glass-card kpi-card" [class.kpi-card-danger]="stuckCount() > 0" [class.kpi-card-success]="stuckCount() === 0">
+            <div class="kpi-card-header">
+              <span class="kpi-label">Pipeline In-Flight Health</span>
+              <div class="kpi-icon-badge" [class.badge-success]="stuckCount() === 0" [class.badge-danger]="stuckCount() > 0">
+                @if (stuckCount() === 0) {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                } @else {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                }
+              </div>
+            </div>
+            @if (stuckCount() === 0) {
+              <div class="kpi-value code-mono text-success">Optimal</div>
+              <div class="kpi-footer">
+                <span class="kpi-subtext">No stalled documents detected</span>
+              </div>
+            } @else {
+              <div class="kpi-value code-mono text-danger">{{ stuckCount() }} Stuck</div>
+              <div class="kpi-footer">
+                <span class="kpi-subtext">Exceeds 10-minute processing threshold</span>
+              </div>
+            }
+          </div>
+
+          <div class="glass-card kpi-card">
+            <div class="kpi-card-header">
+              <span class="kpi-label">Slowest Recorded Job</span>
+              <div class="kpi-icon-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value code-mono">
+              {{ formatDuration(healthData()?.slowestDocuments?.[0]?.durationSeconds) }}
+            </div>
+            <div class="kpi-footer">
+              <span class="kpi-subtext">Longest completed document turnaround</span>
+            </div>
+          </div>
+
+          <div class="glass-card kpi-card">
+            <div class="kpi-card-header">
+              <span class="kpi-label">Active Monitoring Policy</span>
+              <div class="kpi-icon-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value code-mono text-muted">10m SLA</div>
+            <div class="kpi-footer">
+              <span class="kpi-subtext">Flagged when in-flight &gt; 10 minutes</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stuck Documents Section (Alert Table) -->
+        <section class="glass-card section-card">
+          <div class="card-header">
+            <div class="header-with-status">
+              <div>
+                <h2 class="card-title">Stuck Documents Monitor</h2>
+                <p class="card-description">
+                  In-flight jobs currently paused in PROCESSING or INDEXING beyond SLA threshold
+                </p>
+              </div>
+              @if (stuckCount() > 0) {
+                <span class="status-indicator-badge badge-warning">
+                  ⚠️ {{ stuckCount() }} Document(s) Require Attention
+                </span>
+              } @else {
+                <span class="status-indicator-badge badge-healthy">
+                  ✓ Pipeline Clear
+                </span>
+              }
+            </div>
+          </div>
+
+          @if (stuckCount() === 0) {
+            <div class="empty-state-banner">
+              <div class="empty-icon">✓</div>
+              <div class="empty-text">
+                <h3>All Background Jobs Operating Normally</h3>
+                <p>No documents are currently stalled in Celery extraction or pgvector indexing.</p>
+              </div>
+            </div>
+          } @else {
+            <div class="table-responsive">
+              <table class="report-table">
+                <thead>
+                  <tr>
+                    <th>Document</th>
+                    <th>Status</th>
+                    <th>Stuck Duration</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (doc of healthData()?.stuckDocuments ?? []; track doc.id) {
+                    <tr class="row-warning">
+                      <td class="cell-doc">
+                        <div class="doc-name" [title]="doc.fileName">{{ doc.fileName }}</div>
+                        <div class="doc-id code-mono">{{ doc.id }}</div>
+                      </td>
+                      <td>
+                        <app-status-badge [status]="doc.status"></app-status-badge>
+                      </td>
+                      <td class="cell-highlight-danger code-mono">
+                        {{ formatMinutes(doc.minutesStuck) }}
+                      </td>
+                      <td class="cell-time">
+                        {{ parseLocalUtc(doc.updatedAt) | date:'medium' }}
+                      </td>
+                      <td>
+                        <a [routerLink]="['/documents', doc.id]" class="view-link">
+                          Inspect &rarr;
+                        </a>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+
+        <!-- Top 5 Slowest Documents Table -->
+        <section class="glass-card section-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Top Slowest Processed Documents</h2>
+              <p class="card-description">
+                Completed jobs with the highest end-to-end turnaround latency
+              </p>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Document</th>
+                  <th>Outcome</th>
+                  <th>Total Duration</th>
+                  <th>Completed At</th>
+                  <th>Inspect</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if ((healthData()?.slowestDocuments?.length ?? 0) === 0) {
+                  <tr>
+                    <td colspan="6" class="cell-empty">
+                      No processed documents recorded yet.
+                    </td>
+                  </tr>
+                } @else {
+                  @for (doc of healthData()?.slowestDocuments ?? []; track doc.id; let i = $index) {
+                    <tr>
+                      <td class="cell-rank">#{{ i + 1 }}</td>
+                      <td class="cell-doc">
+                        <div class="doc-name" [title]="doc.fileName">{{ doc.fileName }}</div>
+                        <div class="doc-id code-mono">{{ doc.id }}</div>
+                      </td>
+                      <td>
+                        <app-status-badge [status]="doc.status"></app-status-badge>
+                      </td>
+                      <td class="cell-duration code-mono">
+                        {{ formatDuration(doc.durationSeconds) }}
+                      </td>
+                      <td class="cell-time">
+                        {{ parseLocalUtc(doc.updatedAt) | date:'medium' }}
+                      </td>
+                      <td>
+                        <a [routerLink]="['/documents', doc.id]" class="view-link">
+                          View &rarr;
+                        </a>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    }
+  }
+</div>

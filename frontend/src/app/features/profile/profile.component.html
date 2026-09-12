@@ -1,0 +1,213 @@
+<div class="profile-page">
+  <!-- Top Header -->
+  <header class="page-header">
+    <div class="header-titles">
+      <div class="badge-pill code-mono">
+        <span class="auth-status-dot"></span>
+        IDENTITY & ACCESS MANAGEMENT
+      </div>
+      <h1 class="page-title gradient-text-headline">User Profile</h1>
+      <p class="page-subtitle">
+        Active Keycloak OIDC credentials, role permissions, and session telemetry.
+      </p>
+    </div>
+
+    <!-- Action Buttons -->
+    @if (keycloak.isAuthenticated()) {
+      <button type="button" class="btn-logout" (click)="logout()" title="End Keycloak Session">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span>Sign Out</span>
+      </button>
+    }
+  </header>
+
+  <!-- Auth Status Banner -->
+  @if (keycloak.isAuthenticated()) {
+    <div class="auth-active-banner">
+      <div class="banner-icon-wrapper active-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <polyline points="9 12 11 14 15 10"></polyline>
+        </svg>
+      </div>
+      <div class="banner-body">
+        <div class="banner-title-row">
+          <span class="banner-title">Authenticated via Keycloak OIDC</span>
+          <span class="banner-badge badge-active code-mono">OAUTH2 / PKCE ACTIVE</span>
+        </div>
+        <p class="banner-text">
+          Session is secured with RS256 JWT tokens verified against the <code>doc-intelligence</code> Keycloak realm.
+          All vector searches, documents, and RAG requests are cryptographically scoped to your user UUID.
+        </p>
+      </div>
+    </div>
+  } @else {
+    <div class="stub-notice-banner">
+      <div class="banner-icon-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div class="banner-body">
+        <div class="banner-title-row">
+          <span class="banner-title">Local Development Session</span>
+          <span class="banner-badge code-mono">FALLBACK AUTH</span>
+        </div>
+        <p class="banner-text">
+          Running in fallback development mode. Start the Keycloak container via Docker Compose to enable full Single Sign-On and multi-tenant isolation.
+        </p>
+      </div>
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="profile-cards-grid">
+      <div class="profile-card skeleton-card">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-line" style="width: 50%; height: 20px; margin-top: 16px;"></div>
+        <div class="skeleton-line" style="width: 70%; height: 14px; margin-top: 8px;"></div>
+      </div>
+    </div>
+  }
+
+  @if (user(); as profile) {
+    <div class="profile-cards-grid">
+      <!-- Main Profile Card -->
+      <div class="profile-card main-profile-card">
+        <div class="profile-card-header">
+          <div class="avatar-wrapper">
+            <div class="user-avatar">
+              <span>{{ initials() }}</span>
+            </div>
+            <div class="online-dot" title="Session Active"></div>
+          </div>
+          <div class="user-title-group">
+            <h2 class="user-display-name">
+              {{ profile.first_name ? profile.first_name + ' ' + (profile.last_name || '') : profile.username }}
+            </h2>
+            <div class="roles-row">
+              @for (r of profile.roles || [profile.role || 'USER']; track r) {
+                <div class="user-role-badge code-mono">
+                  <span class="role-dot"></span>
+                  {{ r }}
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-divider"></div>
+
+        <!-- Identity Fields Grid -->
+        <div class="fields-grid">
+          <div class="field-item">
+            <span class="field-label">User Subject (UUID)</span>
+            <div class="field-value-row">
+              <code class="code-mono field-code">{{ profile.id || profile.user_id }}</code>
+              <button
+                type="button"
+                class="btn-copy"
+                (click)="copyUserId(profile.id || profile.user_id || '')"
+                [title]="copiedId() ? 'Copied!' : 'Copy User ID'"
+              >
+                @if (copiedId()) {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" width="14" height="14">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span class="copied-text text-emerald code-mono">Copied</span>
+                } @else {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                }
+              </button>
+            </div>
+          </div>
+
+          <div class="field-item">
+            <span class="field-label">Username</span>
+            <span class="field-value code-mono">{{ profile.username }}</span>
+          </div>
+
+          <div class="field-item">
+            <span class="field-label">Email Address</span>
+            <span class="field-value">{{ profile.email || 'No email attached' }}</span>
+          </div>
+
+          <div class="field-item">
+            <span class="field-label">Keycloak Realm</span>
+            <span class="field-value code-mono">{{ profile.realm || 'doc-intelligence' }}</span>
+          </div>
+
+          <div class="field-item">
+            <span class="field-label">Auth Provider</span>
+            <span class="field-value">{{ profile.auth_provider || 'Keycloak OIDC' }}</span>
+          </div>
+
+          <div class="field-item">
+            <span class="field-label">Session Token Status</span>
+            <span class="field-value text-emerald code-mono">Active (RS256 Verified)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Security & Permissions Matrix Card -->
+      <div class="profile-card permissions-card">
+        <div class="section-title-group">
+          <h3 class="card-section-title">Effective Realm Privileges</h3>
+          <p class="card-section-desc">Granted permissions governed by Keycloak realm roles</p>
+        </div>
+
+        <div class="permissions-list">
+          <div class="permission-row">
+            <div class="perm-info">
+              <span class="perm-name">Document Ingestion & OCR</span>
+              <span class="perm-desc">Multi-format ingestion via Docling & Celery queue</span>
+            </div>
+            <span class="perm-status-badge status-allowed code-mono">GRANTED</span>
+          </div>
+
+          <div class="permission-row">
+            <div class="perm-info">
+              <span class="perm-name">Semantic Vector Search</span>
+              <span class="perm-desc">E5 384d cosine retrieval isolated to user UUID</span>
+            </div>
+            <span class="perm-status-badge status-allowed code-mono">GRANTED</span>
+          </div>
+
+          <div class="permission-row">
+            <div class="perm-info">
+              <span class="perm-name">LangGraph RAG Inference</span>
+              <span class="perm-desc">Grounded LLM synthesis using Gemma 3</span>
+            </div>
+            <span class="perm-status-badge status-allowed code-mono">GRANTED</span>
+          </div>
+
+          <div class="permission-row">
+            <div class="perm-info">
+              <span class="perm-name">Document Lifecycle & Deletion</span>
+              <span class="perm-desc">Full ownership of MinIO files & pgvector records</span>
+            </div>
+            <span class="perm-status-badge status-allowed code-mono">GRANTED</span>
+          </div>
+        </div>
+
+        <!-- Security Notice Footer -->
+        <div class="security-footer code-mono">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span>Token Type: OAuth2 Bearer Access Token</span>
+        </div>
+      </div>
+    </div>
+  }
+</div>

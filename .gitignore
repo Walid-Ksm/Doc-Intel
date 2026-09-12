@@ -1,0 +1,29 @@
+.env
+.env.prod
+.env*.local
+venv/
+.venv/
+.idea/
+.vscode/
+.pytest_cache/
+.ruff_cache/
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Local storage
+uploaded_files/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Java / Spring Boot
+target/
+**/target/
+*.class
+.factorypath

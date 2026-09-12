@@ -1,0 +1,48 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: doc-intelligence-reports
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:15432/doc_intelligence}
+    username: ${DB_USER:${DB_USERNAME:document_reports}}
+    password: ${DB_PASSWORD:reports_dev_password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      idle-timeout: 30000
+      connection-timeout: 20000
+      read-only: true
+      auto-commit: false
+      pool-name: DocumentReportsPool
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+        connection:
+          provider_disables_autocommit: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/doc-intelligence}
+
+# Application-specific report settings
+reports:
+  stuck-threshold-minutes: 10
+  slow-threshold-seconds: 60
+  slow-limit: 10
+  top-users-limit: 5
+  daily-trend-days: 14
+  stuck-document-threshold: ${STUCK_DOCUMENT_THRESHOLD:PT10M}

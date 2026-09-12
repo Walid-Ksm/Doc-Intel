@@ -1,0 +1,253 @@
+services:
+  # ============================================================================
+  # 1. Core Storage & Infrastructure
+  # ============================================================================
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: doc-intelligence-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-walid}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-doc_intelligence}
+    ports:
+      - "15432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-walid} -d ${POSTGRES_DB:-doc_intelligence}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - docnet
+
+  minio:
+    image: minio/minio
+    container_name: doc-intelligence-minio
+    restart: always
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-walid}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-devpassword123}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - docnet
+
+  redis:
+    image: redis:7-alpine
+    container_name: doc-intelligence-redis
+    restart: always
+    ports:
+      - "16379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - docnet
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    container_name: doc-intelligence-keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_PORT: 8080
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-doc_intelligence}
+      KC_DB_USERNAME: ${POSTGRES_USER:-walid}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+      KC_DB_SCHEMA: keycloak
+      DEV_USER_ADAM_PASSWORD: ${DEV_USER_ADAM_PASSWORD:-devpassword}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./infra/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - docnet
+
+  etcd:
+    image: bitnamilegacy/etcd:3.5.11
+    container_name: doc-intelligence-etcd
+    restart: always
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+    ports:
+      - "2379:2379"
+    volumes:
+      - etcd_data:/bitnami/etcd
+    networks:
+      - docnet
+
+  apisix:
+    image: apache/apisix:3.9.0-debian
+    container_name: doc-intelligence-apisix
+    restart: always
+    volumes:
+      - ./infra/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+    depends_on:
+      - etcd
+    ports:
+      - "9080:9080"
+      - "9180:9180"
+    networks:
+      - docnet
+
+  # ============================================================================
+  # 2. Application Services
+  # ============================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: doc-intelligence-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-walid}:${POSTGRES_PASSWORD:-devpassword}@postgres:5432/${POSTGRES_DB:-doc_intelligence}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-walid}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-devpassword123}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-documents}
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-doc-intelligence}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-doc-intelligence-ui}
+      AUTH_ENABLED: ${AUTH_ENABLED:-true}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma3:1b}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:9080,http://localhost}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - docnet
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: doc-intelligence-celery
+    restart: unless-stopped
+    command: ["celery", "-A", "app.infrastructure.celery.celery_app", "worker", "--pool=threads", "--concurrency=4", "--loglevel=info"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-walid}:${POSTGRES_PASSWORD:-devpassword}@postgres:5432/${POSTGRES_DB:-doc_intelligence}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-walid}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-devpassword123}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-documents}
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma3:1b}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    networks:
+      - docnet
+
+  reports:
+    build:
+      context: ./reports
+      dockerfile: Dockerfile
+    container_name: doc-intelligence-reports
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-doc_intelligence}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-walid}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/doc-intelligence/protocol/openid-connect/certs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - docnet
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: doc-intelligence-frontend
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    depends_on:
+      - apisix
+    networks:
+      - docnet
+
+  apisix-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: doc-intelligence-apisix-init
+    restart: "no"
+    command: ["python", "infra/apisix/configure_apisix.py"]
+    environment:
+      APISIX_ADMIN_URL: http://apisix:9180/apisix/admin/routes
+      APISIX_ADMIN_KEY: ${APISIX_ADMIN_KEY:-edd1c9f034335f136f87ad84b625c8f1}
+      CORE_UPSTREAM: api:8000
+      REPORTS_UPSTREAM: reports:8081
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4200,http://localhost:9080,http://localhost}
+    depends_on:
+      - apisix
+      - api
+      - reports
+    networks:
+      - docnet
+
+# ==============================================================================
+# Persistent Volumes & Network
+# ==============================================================================
+volumes:
+  pgdata:
+  minio_data:
+  redis_data:
+  etcd_data:
+
+networks:
+  docnet:
+    driver: bridge

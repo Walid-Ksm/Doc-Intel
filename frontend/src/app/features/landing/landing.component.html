@@ -1,0 +1,264 @@
+<div class="landing-page">
+  <!-- Atmospheric Glow Backdrop -->
+  <div class="landing-ambient-glow" aria-hidden="true"></div>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <!-- Version Pill -->
+    <div class="hero-pill code-mono">
+      <span class="pill-dot"></span>
+      <span>DocIntelligence Core v1.0 • Enterprise OCR & RAG</span>
+      <span class="pill-arrow">→</span>
+    </div>
+
+    <!-- Main Headline -->
+    <h1 class="hero-headline">
+      Turn Complex Documents Into
+      <span class="gradient-text-headline">Searchable Knowledge</span>
+    </h1>
+
+    <!-- Subtitle -->
+    <p class="hero-subtitle">
+      Deep layout OCR with Docling, sub-second semantic retrieval with multilingual E5 embeddings on PostgreSQL pgvector, and grounded RAG synthesis with local LLMs.
+    </p>
+
+    <!-- Hero Action -->
+    <div class="hero-actions">
+      @if (!keycloak.isAuthenticated()) {
+        <button (click)="keycloak.login()" class="btn-hero-primary btn-get-started">
+          <span>LOGIN / GET STARTED</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      } @else {
+        <a routerLink="/dashboard" class="btn-hero-primary btn-get-started">
+          <span>GO TO DASHBOARD</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </a>
+      }
+    </div>
+
+    <!-- Hero Interactive Pipeline Visual Card -->
+    <div class="hero-preview-card">
+      <div class="preview-card-header">
+        <div class="window-controls">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-yellow"></span>
+          <span class="dot dot-green"></span>
+        </div>
+        <div class="preview-title code-mono">
+          <span class="text-cyan">pipeline_architecture.py</span> • Celery Worker Flow
+        </div>
+        <div class="status-chip code-mono">
+          <span class="chip-pulse"></span>
+          ACTIVE CLUSTER
+        </div>
+      </div>
+
+      <div class="preview-card-body">
+        <!-- Interactive Step Nodes -->
+        <div class="pipeline-nodes-row">
+          <div class="pipeline-node">
+            <div class="node-icon bg-indigo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <div class="node-info">
+              <span class="node-step code-mono">01. INGESTION</span>
+              <span class="node-name">MinIO S3 + Versioning</span>
+            </div>
+          </div>
+
+          <div class="node-connector">
+            <span class="connector-line"></span>
+          </div>
+
+          <div class="pipeline-node">
+            <div class="node-icon bg-cyan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            </div>
+            <div class="node-info">
+              <span class="node-step code-mono">02. OCR EXTRACTION</span>
+              <span class="node-name">Docling Neural Engine</span>
+            </div>
+          </div>
+
+          <div class="node-connector">
+            <span class="connector-line"></span>
+          </div>
+
+          <div class="pipeline-node">
+            <div class="node-icon bg-purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </div>
+            <div class="node-info">
+              <span class="node-step code-mono">03. VECTORIZATION</span>
+              <span class="node-name">Multilingual E5 (384-dim)</span>
+            </div>
+          </div>
+
+          <div class="node-connector">
+            <span class="connector-line"></span>
+          </div>
+
+          <div class="pipeline-node">
+            <div class="node-icon bg-emerald">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+              </svg>
+            </div>
+            <div class="node-info">
+              <span class="node-step code-mono">04. RAG AI INFERENCE</span>
+              <span class="node-name">Grounded LLM Output</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Core Pillars Grid -->
+  <section class="features-section">
+    <div class="section-badge-center">
+      <span class="badge-pill code-mono">CORE CAPABILITIES</span>
+      <h2 class="features-title">Engineered for Accuracy & Throughput</h2>
+      <p class="features-desc">
+        A production-grade document processing and retrieval architecture built with modern backend standards.
+      </p>
+    </div>
+
+    <div class="features-grid">
+      <!-- Feature 1 -->
+      <div class="feature-card">
+        <div class="feature-icon bg-indigo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+        </div>
+        <h3 class="feature-name">Deep OCR Extraction</h3>
+        <p class="feature-text">
+          Parse complex PDF layouts, Word DOCX, and camera receipt images (`JPG`/`PNG`) into clean, structured Markdown preserving tables, headers, and hierarchical typography.
+        </p>
+        <div class="feature-tag code-mono">Docling Neural Parser</div>
+      </div>
+
+      <!-- Feature 2 -->
+      <div class="feature-card">
+        <div class="feature-icon bg-cyan">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <h3 class="feature-name">Celery Task Queue</h3>
+        <p class="feature-text">
+          Decoupled background task workers running on Redis. Prevents server freezing under burst upload traffic with concurrency throttling and rate limits.
+        </p>
+        <div class="feature-tag code-mono">Celery + Redis Broker</div>
+      </div>
+
+      <!-- Feature 3 -->
+      <div class="feature-card">
+        <div class="feature-icon bg-purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </div>
+        <h3 class="feature-name">Semantic Vector Search</h3>
+        <p class="feature-text">
+          Vectorized with `intfloat/multilingual-e5-small` 384-dimensional embeddings and indexed in PostgreSQL via pgvector HNSW for millisecond semantic retrieval.
+        </p>
+        <div class="feature-tag code-mono">pgvector • Cosine Distance</div>
+      </div>
+
+      <!-- Feature 4 -->
+      <div class="feature-card">
+        <div class="feature-icon bg-emerald">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </div>
+        <h3 class="feature-name">Grounded RAG AI</h3>
+        <p class="feature-text">
+          Ask questions in natural language and receive synthesised answers grounded exclusively in your indexed document chunks, complete with relevance citations.
+        </p>
+        <div class="feature-tag code-mono">Ollama Local LLM (Gemma 3)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack Ribbon -->
+  <section class="tech-stack-section">
+    <span class="tech-label code-mono">POWERED BY MODERN INFRASTRUCTURE</span>
+    <div class="tech-badges-row">
+      <span class="tech-badge">FastAPI</span>
+      <span class="tech-badge">Celery</span>
+      <span class="tech-badge">Redis</span>
+      <span class="tech-badge">PostgreSQL</span>
+      <span class="tech-badge">pgvector</span>
+      <span class="tech-badge">MinIO</span>
+      <span class="tech-badge">Docling</span>
+      <span class="tech-badge">HuggingFace E5</span>
+      <span class="tech-badge">Ollama</span>
+      <span class="tech-badge">Angular 19</span>
+    </div>
+  </section>
+
+  <!-- Bottom CTA Banner -->
+  <section class="bottom-cta-section">
+    <div class="cta-inner-card">
+      <h2 class="cta-title">Ready to extract intelligence from your documents?</h2>
+      <p class="cta-desc">
+        Start processing invoices, contracts, research papers, and receipts in your local sandbox workspace.
+      </p>
+      <div class="cta-buttons">
+        @if (!keycloak.isAuthenticated()) {
+          <button (click)="keycloak.login()" class="btn-hero-primary">
+            <span>Login to Get Started</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        } @else {
+          <a routerLink="/documents" class="btn-hero-primary">
+            <span>Start Uploading</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </a>
+          <a routerLink="/dashboard" class="btn-hero-secondary">
+            <span>View Dashboard</span>
+          </a>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="landing-footer">
+    <div class="footer-left">
+      <span class="brand-name gradient-text-headline">DocIntelligence</span>
+      <span class="footer-sub text-muted code-mono">Document Intelligence & RAG AI Service</span>
+    </div>
+    <div class="footer-right text-muted code-mono">
+      <span>Local Sandbox Environment</span>
+    </div>
+  </footer>
+</div>

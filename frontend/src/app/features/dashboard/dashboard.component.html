@@ -1,0 +1,305 @@
+<div class="dashboard-page">
+  <!-- Top Action Header -->
+  <header class="page-header">
+    <div class="header-titles">
+      <div class="badge-pill code-mono">
+        <span class="pulse-indicator"></span>
+        PIPELINE METRICS
+      </div>
+      <h1 class="page-title gradient-text-headline">System Dashboard</h1>
+      <p class="page-subtitle">
+        Real-time telemetry, asynchronous task queues, and vector indexing health.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button
+        type="button"
+        class="btn-secondary"
+        (click)="loadDashboardData()"
+        [disabled]="isLoading()"
+        title="Refresh metrics"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" [class.spin]="isLoading()">
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+        </svg>
+        <span>Refresh</span>
+      </button>
+
+      <a routerLink="/documents" class="btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+        <span>View Documents</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Error Banner -->
+  @if (error()) {
+    <div class="error-banner">
+      <div class="error-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div class="error-content">
+        <div class="error-title">Failed to load metrics</div>
+        <div class="error-desc">{{ error() }}</div>
+      </div>
+      <button type="button" class="btn-secondary btn-sm" (click)="loadDashboardData()">Retry</button>
+    </div>
+  }
+
+  <!-- Loading Skeletons -->
+  @if (isLoading() && !metrics()) {
+    <div class="stats-grid">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <div class="stat-card skeleton-card">
+          <div class="skeleton-line skeleton-title"></div>
+          <div class="skeleton-line skeleton-value"></div>
+          <div class="skeleton-line skeleton-sub"></div>
+        </div>
+      }
+    </div>
+
+    <div class="dashboard-section skeleton-section">
+      <div class="skeleton-line skeleton-header"></div>
+      <div class="skeleton-line skeleton-bar"></div>
+    </div>
+  }
+
+  <!-- Active Data Views -->
+  @if (metrics(); as data) {
+    <!-- Stat Cards Grid -->
+    <div class="stats-grid">
+      <!-- Total Documents -->
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-label">Total Documents</span>
+          <div class="stat-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="stat-value code-mono">{{ data.total_documents }}</div>
+        <div class="stat-footer">
+          <span class="stat-subtext">In database corpus</span>
+        </div>
+      </div>
+
+      <!-- Indexed / Searchable -->
+      <div class="stat-card stat-card-success">
+        <div class="stat-card-header">
+          <span class="stat-label">Indexed & Searchable</span>
+          <div class="stat-icon-badge badge-success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="stat-value code-mono text-emerald">{{ data.indexed_count }}</div>
+        <div class="stat-footer">
+          <span class="stat-subtext">
+            @if (data.total_documents > 0) {
+              {{ getStatusPercentage('INDEXED') }}% completion rate
+            } @else {
+              No documents yet
+            }
+          </span>
+        </div>
+      </div>
+
+      <!-- Failed -->
+      <div class="stat-card stat-card-danger">
+        <div class="stat-card-header">
+          <span class="stat-label">Failed</span>
+          <div class="stat-icon-badge badge-danger">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+          </div>
+        </div>
+        <div class="stat-value code-mono" [class.text-rose]="data.failed_count > 0">{{ data.failed_count }}</div>
+        <div class="stat-footer">
+          <span class="stat-subtext">Requires re-upload or retry</span>
+        </div>
+      </div>
+
+      <!-- Error Rate -->
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-label">Error Rate</span>
+          <div class="stat-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+          </div>
+        </div>
+        <div class="stat-value code-mono" [ngClass]="{
+          'text-emerald': data.error_rate_percentage === 0,
+          'text-amber': data.error_rate_percentage > 0 && data.error_rate_percentage <= 10,
+          'text-rose': data.error_rate_percentage > 10
+        }">
+          {{ data.error_rate_percentage }}%
+        </div>
+        <div class="stat-footer">
+          <span class="stat-subtext">Failed / Total ratio</span>
+        </div>
+      </div>
+
+      <!-- Avg Processing Time -->
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-label">Avg Processing Time</span>
+          <div class="stat-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="stat-value code-mono text-cyan">{{ formatDuration(data.avg_processing_time_seconds) }}</div>
+        <div class="stat-footer">
+          <span class="stat-subtext">Docling OCR + E5 Vectorization</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipeline Status Breakdown Section -->
+    <div class="dashboard-section status-breakdown-card">
+      <div class="section-header">
+        <div class="section-title-group">
+          <h2 class="section-title">Pipeline Status Distribution</h2>
+          <p class="section-desc">Document distribution across the OCR extraction and embedding lifecycle</p>
+        </div>
+        <div class="code-mono queue-indicator">
+          Broker: <span class="text-cyan">Celery + Redis</span>
+        </div>
+      </div>
+
+      @if (data.total_documents > 0) {
+        <!-- Segmented Progress Bar -->
+        <div class="progress-bar-container" title="Status Distribution">
+          @if (getStatusCount('INDEXED') > 0) {
+            <div
+              class="bar-segment seg-indexed"
+              [style.width.%]="getStatusPercentage('INDEXED')"
+              [title]="'Indexed: ' + getStatusCount('INDEXED') + ' (' + getStatusPercentage('INDEXED') + '%)'"
+            ></div>
+          }
+          @if (getStatusCount('EXTRACTED') + getStatusCount('INDEXING') > 0) {
+            <div
+              class="bar-segment seg-indexing"
+              [style.width.%]="getStatusPercentage('EXTRACTED') + getStatusPercentage('INDEXING')"
+              [title]="'Vectorizing / Extracted: ' + (getStatusCount('EXTRACTED') + getStatusCount('INDEXING'))"
+            ></div>
+          }
+          @if (getStatusCount('PROCESSING') > 0) {
+            <div
+              class="bar-segment seg-processing"
+              [style.width.%]="getStatusPercentage('PROCESSING')"
+              [title]="'Processing (OCR): ' + getStatusCount('PROCESSING')"
+            ></div>
+          }
+          @if (getStatusCount('PENDING') > 0) {
+            <div
+              class="bar-segment seg-pending"
+              [style.width.%]="getStatusPercentage('PENDING')"
+              [title]="'Pending: ' + getStatusCount('PENDING')"
+            ></div>
+          }
+          @if (getStatusCount('FAILED') > 0) {
+            <div
+              class="bar-segment seg-failed"
+              [style.width.%]="getStatusPercentage('FAILED')"
+              [title]="'Failed: ' + getStatusCount('FAILED')"
+            ></div>
+          }
+        </div>
+
+        <!-- Breakdown Chips Grid -->
+        <div class="status-chips-grid">
+          @for (key of statusKeys; track key) {
+            <div class="status-chip">
+              <div class="chip-left">
+                <span class="chip-dot" [ngClass]="'dot-' + key.toLowerCase()"></span>
+                <span class="chip-name">{{ key }}</span>
+              </div>
+              <div class="chip-right code-mono">
+                <span class="chip-count">{{ getStatusCount(key) }}</span>
+                <span class="chip-pct text-muted">({{ getStatusPercentage(key) }}%)</span>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-status-state">
+          <p class="text-muted">No documents uploaded yet. Upload files to view pipeline telemetry.</p>
+        </div>
+      }
+    </div>
+
+    <!-- Recent Documents Section -->
+    <div class="dashboard-section recent-docs-card">
+      <div class="section-header">
+        <div class="section-title-group">
+          <h2 class="section-title">Recent Documents</h2>
+          <p class="section-desc">Latest documents processed through the intelligence pipeline</p>
+        </div>
+        <a routerLink="/documents" class="view-all-link">
+          <span>View All</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </a>
+      </div>
+
+      @if (recentDocuments().length > 0) {
+        <div class="recent-list">
+          @for (doc of recentDocuments(); track doc.document_id) {
+            <a [routerLink]="['/documents', doc.document_id]" class="recent-item">
+              <div class="recent-item-left">
+                <div class="doc-icon-wrapper">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                </div>
+                <div class="doc-meta-info">
+                  <div class="doc-filename">{{ doc.file_name }}</div>
+                  <div class="doc-details-sub code-mono text-muted">
+                    <span>v{{ doc.version }}</span>
+                    <span>•</span>
+                    <span>{{ doc.created_at | date: 'medium' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="recent-item-right">
+                <app-status-badge [status]="doc.status"></app-status-badge>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" class="chevron-icon">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            </a>
+          }
+        </div>
+      } @else {
+        <div class="empty-status-state">
+          <p class="text-muted">No recent documents available.</p>
+        </div>
+      }
+    </div>
+  }
+</div>

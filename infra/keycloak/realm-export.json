@@ -1,0 +1,144 @@
+{
+  "id": "doc-intelligence",
+  "realm": "doc-intelligence",
+  "displayName": "DocIntelligence",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "accessTokenLifespan": 1800,
+  "ssoSessionIdleTimeout": 28800,
+  "ssoSessionMaxLifespan": 86400,
+  "roles": {
+    "realm": [
+      {
+        "name": "USER",
+        "description": "Standard user access"
+      },
+      {
+        "name": "ADMIN",
+        "description": "Administrator access"
+      }
+    ]
+  },
+  "defaultRoles": [
+    "USER"
+  ],
+  "clients": [
+    {
+      "clientId": "doc-intelligence-ui",
+      "name": "DocIntelligence Angular Frontend",
+      "description": "Public client using PKCE for the Angular SPA",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "http://localhost:4200",
+      "baseUrl": "http://localhost:4200",
+      "redirectUris": [
+        "http://localhost:4200/*",
+        "http://localhost:4200"
+      ],
+      "webOrigins": [
+        "http://localhost:4200",
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:4200/*##http://localhost:4200"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "e63a8264-e4c7-4581-80a5-298a58ec0e72",
+      "username": "walid",
+      "email": "walid@example.com",
+      "firstName": "Walid",
+      "lastName": "Developer",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "devpassword",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "USER",
+        "ADMIN"
+      ]
+    },
+    {
+      "id": "f1a2b3c4-d5e6-4789-a012-3456789abcde",
+      "username": "admin",
+      "email": "admin@doc-intelligence.internal",
+      "firstName": "System",
+      "lastName": "Administrator",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "USER",
+        "ADMIN"
+      ]
+    },
+    {
+      "id": "c1d2e3f4-a5b6-4789-b012-3456789cdefa",
+      "username": "alex.developer",
+      "email": "alex.developer@doc-intelligence.internal",
+      "firstName": "Alex",
+      "lastName": "Developer",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "developer",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "USER"
+      ]
+    },
+    {
+      "id": "d91f402e-7981-4afe-baf6-fbcf1d396335",
+      "username": "adam",
+      "email": "adam@example.com",
+      "firstName": "Adam",
+      "lastName": "User",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${env:DEV_USER_ADAM_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "USER"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+node_modules/
+.angular/
+dist/
+.vscode/
+.git/
+.editorconfig
+.prettierrc
+README.md

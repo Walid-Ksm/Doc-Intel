@@ -1,0 +1,246 @@
+<div class="page-container">
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Documents</h1>
+      <p class="page-subtitle">
+        Upload, monitor extraction and index documents for semantic search.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      @if (store.isPolling()) {
+        <div class="live-indicator" title="Live updates active">
+          <span class="live-dot"></span>
+          <span class="live-text">Live Sync</span>
+        </div>
+      }
+
+      <button type="button" class="btn btn-primary" (click)="openUploadModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+        <span>Upload</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Error Banner -->
+  @if (store.error()) {
+    <div class="error-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ store.error() }}</span>
+      <button type="button" class="btn-retry" (click)="store.loadDocuments()">Retry</button>
+    </div>
+  }
+
+  <!-- Search + Sort Controls -->
+  @if (!store.isLoading() || store.documents().length > 0) {
+    <div class="toolbar">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Filter by name or status..."
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          id="doc-search"
+          autocomplete="off"
+        />
+        @if (searchQuery()) {
+          <button type="button" class="btn-clear-search" (click)="searchQuery.set('')">&times;</button>
+        }
+      </div>
+
+      <div class="result-count code-mono">
+        {{ filteredAndSorted().length }} / {{ store.documentCount() }} documents
+      </div>
+    </div>
+  }
+
+  <!-- Loading Skeleton -->
+  @if (store.isLoading() && store.documents().length === 0) {
+    <div class="table-card">
+      <div class="skeleton-table">
+        <div class="skeleton-header skeleton"></div>
+        @for (i of [1, 2, 3, 4, 5]; track i) {
+          <div class="skeleton-row skeleton"></div>
+        }
+      </div>
+    </div>
+  } @else if (store.documents().length === 0) {
+    <!-- Empty State -->
+    <div class="empty-card">
+      <div class="empty-icon-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+      </div>
+      <h3>No documents yet</h3>
+      <p>Upload PDFs, DOCX, or images to start OCR extraction and vector indexing.</p>
+      <button type="button" class="btn btn-primary" (click)="openUploadModal()">
+        Upload First Document
+      </button>
+    </div>
+  } @else if (filteredAndSorted().length === 0) {
+    <!-- No Search Results -->
+    <div class="empty-card">
+      <div class="empty-icon-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <line x1="8" y1="11" x2="14" y2="11"></line>
+        </svg>
+      </div>
+      <h3>No matches found</h3>
+      <p>No documents match <strong class="text-white">"{{ searchQuery() }}"</strong>. Try a different name or status.</p>
+      <button type="button" class="btn btn-secondary" (click)="searchQuery.set('')">Clear filter</button>
+    </div>
+  } @else {
+    <!-- Documents Table -->
+    <div class="table-card">
+      <table class="documents-table">
+        <thead>
+          <tr>
+            <th class="col-file sortable" (click)="sortBy('file_name')">
+              <span class="th-content">
+                <span>File Name</span>
+                <span class="sort-icon" [class]="'sort-' + sortIcon('file_name')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </span>
+              </span>
+            </th>
+            <th class="col-status sortable" (click)="sortBy('status')">
+              <span class="th-content">
+                <span>Status</span>
+                <span class="sort-icon" [class]="'sort-' + sortIcon('status')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </span>
+              </span>
+            </th>
+            <th class="col-version sortable" (click)="sortBy('version')">
+              <span class="th-content">
+                <span>Ver</span>
+                <span class="sort-icon" [class]="'sort-' + sortIcon('version')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </span>
+              </span>
+            </th>
+            <th class="col-date sortable" (click)="sortBy('created_at')">
+              <span class="th-content">
+                <span>Uploaded</span>
+                <span class="sort-icon" [class]="'sort-' + sortIcon('created_at')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </span>
+              </span>
+            </th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (doc of filteredAndSorted(); track doc.document_id) {
+            <tr class="table-row">
+              <td class="col-file">
+                <a [routerLink]="['/documents', doc.document_id]" class="file-name-link">
+                  <svg class="file-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  <span class="file-name-text">{{ doc.file_name }}</span>
+                </a>
+              </td>
+              <td class="col-status">
+                <div class="status-cell">
+                  <app-status-badge [status]="doc.status"></app-status-badge>
+                  @if (doc.status === 'FAILED' && doc.error_message) {
+                    <span class="inline-error-tooltip" [title]="doc.error_message">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                      </svg>
+                    </span>
+                  }
+                </div>
+              </td>
+              <td class="col-version">
+                <span class="code-mono version-pill">v{{ doc.version }}</span>
+              </td>
+              <td class="col-date">
+                <span class="date-text code-mono">{{ doc.created_at | date:'MMM d, y, HH:mm' }}</span>
+              </td>
+              <td class="col-actions">
+                <div class="action-buttons">
+                  <a [routerLink]="['/documents', doc.document_id]" class="btn-icon" title="View Details">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </a>
+                  <button
+                    type="button"
+                    class="btn-icon btn-icon-danger"
+                    title="Delete Document"
+                    (click)="confirmDelete(doc, $event)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<!-- Upload Modal -->
+@if (isUploadModalOpen()) {
+  <app-upload-modal (close)="closeUploadModal()"></app-upload-modal>
+}
+
+<!-- Delete Confirmation Modal -->
+@if (documentToDelete()) {
+  <div class="modal-backdrop" (click)="cancelDelete()">
+    <div class="delete-modal-card" (click)="$event.stopPropagation()">
+      <div class="delete-icon-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+      <h3>Delete Document</h3>
+      <p class="delete-modal-text">
+        Are you sure you want to delete
+        <strong class="text-white">{{ documentToDelete()?.file_name }}</strong>?
+        All vector chunks and raw files will be permanently purged.
+      </p>
+      <div class="delete-modal-actions">
+        <button type="button" class="btn btn-secondary" (click)="cancelDelete()">Cancel</button>
+        <button type="button" class="btn btn-danger" (click)="executeDelete()">Delete Permanently</button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,99 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: doc-intelligence-db
+    restart: always
+    environment:
+      POSTGRES_USER: walid
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: doc_intelligence
+    ports:
+      - "15432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U walid -d doc_intelligence"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio
+    container_name: doc-intelligence-minio
+    environment:
+      MINIO_ROOT_USER: walid
+      MINIO_ROOT_PASSWORD: devpassword123
+    ports:
+      - "9000:9000"   
+      - "9001:9001"   
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: doc-intelligence-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    container_name: doc-intelligence-keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_PORT: 8080
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/doc_intelligence
+      KC_DB_USERNAME: walid
+      KC_DB_PASSWORD: devpassword
+      KC_DB_SCHEMA: keycloak
+      DEV_USER_ADAM_PASSWORD: ${DEV_USER_ADAM_PASSWORD:-devpassword}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./infra/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  etcd:
+    image: bitnamilegacy/etcd:3.5.11
+    container_name: doc-intelligence-etcd
+    restart: always
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+    ports:
+      - "2379:2379"
+    volumes:
+      - etcd_data:/bitnami/etcd
+
+  apisix:
+    image: apache/apisix:3.9.0-debian
+    container_name: doc-intelligence-apisix
+    restart: always
+    volumes:
+      - ./infra/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+    depends_on:
+      - etcd
+    ports:
+      - "9080:9080"
+      - "9180:9180"
+
+volumes:
+  pgdata:
+  minio_data:
+  redis_data:
+  etcd_data:

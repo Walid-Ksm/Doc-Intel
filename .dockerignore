@@ -1,0 +1,25 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.vscode/
+.idea/
+.git/
+.gitignore
+
+# Ignore node and frontend build assets in root context
+frontend/
+node_modules/
+
+# Ignore test artifacts
+tests/

@@ -1,0 +1,268 @@
+<div class="chat-page-container">
+  <!-- Top Navigation / Title Header -->
+  <header class="chat-header">
+    <div class="header-info">
+      <div class="badge-pill">
+        <span class="pulse-indicator"></span>
+        <span>GROUNDED DOCUMENT RAG</span>
+      </div>
+      <h1 class="chat-title gradient-text-headline">AI Document Assistant</h1>
+      <p class="chat-subtitle">
+        Multi-turn conversational intelligence grounded in your private document corpus.
+      </p>
+    </div>
+
+    @if (messages().length > 0) {
+      <div class="header-actions">
+        <button
+          type="button"
+          class="clear-chat-btn"
+          (click)="clearConversation()"
+          [disabled]="isGenerating()"
+          title="Start a new chat session"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          <span>New Chat</span>
+        </button>
+      </div>
+    }
+  </header>
+
+  <!-- Scrollable Messages Area -->
+  <div class="chat-messages-container" #scrollContainer>
+    <!-- Empty State / Welcome Screen -->
+    @if (messages().length === 0) {
+      <div class="empty-chat-hero fade-in">
+        <div class="hero-icon-ring">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <h2 class="hero-headline">How can I help with your documents today?</h2>
+        <p class="hero-description">
+          Ask questions, compare clauses, or summarize passages. The assistant keeps track of our conversation
+          and references your indexed vector embeddings in real time.
+        </p>
+
+        <!-- Suggested Prompt Chips -->
+        <div class="starter-prompts-grid">
+          @for (prompt of starterPrompts; track prompt) {
+            <button
+              type="button"
+              class="starter-prompt-card"
+              (click)="sendMessage(prompt)"
+            >
+              <div class="prompt-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </div>
+              <span class="prompt-text">{{ prompt }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    } @else {
+      <!-- Active Conversation Stream -->
+      <div class="conversation-stream">
+        @for (msg of messages(); track msg.id) {
+          <!-- USER MESSAGE -->
+          @if (msg.role === 'user') {
+            <div class="message-row user-row fade-in">
+              <div class="message-bubble user-bubble">
+                <div class="message-text">{{ msg.content }}</div>
+                <div class="message-meta">
+                  <span>{{ msg.timestamp | date:'shortTime' }}</span>
+                </div>
+              </div>
+              <div class="user-avatar" title="You">
+                {{ keycloak.userInitials() }}
+              </div>
+            </div>
+          }
+
+          <!-- ASSISTANT MESSAGE -->
+          @if (msg.role === 'assistant') {
+            <div class="message-row assistant-row fade-in">
+              <div class="assistant-avatar" title="DocIntelligence AI">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+              </div>
+
+              <div class="message-bubble assistant-bubble">
+                <!-- In-Flight Loading Indicator -->
+                @if (msg.isLoading) {
+                  <div class="generating-indicator">
+                    <div class="typing-dots">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                    <span class="generating-text">Searching document embeddings & synthesizing response...</span>
+                  </div>
+                }
+
+                <!-- Error Notice -->
+                @if (msg.error) {
+                  <div class="error-callout">
+                    <div class="error-header">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                      </svg>
+                      <span>Generation Error</span>
+                    </div>
+                    <p class="error-detail">{{ msg.error }}</p>
+                  </div>
+                }
+
+                <!-- Generated Answer Content -->
+                @if (!msg.isLoading && msg.content) {
+                  <div class="message-text markdown-body">
+                    {{ msg.content }}
+                  </div>
+
+                  <!-- Citations & Sources Accordion -->
+                  @if (msg.sources && msg.sources.length > 0) {
+                    <div class="citations-section">
+                      <button
+                        type="button"
+                        class="citations-toggle-btn"
+                        (click)="toggleSources(msg.id)"
+                      >
+                        <svg
+                          class="chevron-icon"
+                          [class.rotated]="isSourcesOpen(msg.id)"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          width="14"
+                          height="14"
+                        >
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                        <span>Verified Citations ({{ msg.sources.length }} passages)</span>
+                      </button>
+
+                      @if (isSourcesOpen(msg.id)) {
+                        <div class="citations-drawer fade-in">
+                          @for (source of msg.sources; track source.chunk_text; let idx = $index) {
+                            <div class="citation-card">
+                              <div class="citation-header">
+                                <div class="citation-title">
+                                  <span class="citation-badge">#{{ idx + 1 }}</span>
+                                  <a
+                                    [routerLink]="['/documents', source.document_id]"
+                                    class="citation-file-link"
+                                    title="View parent document"
+                                  >
+                                    {{ source.file_name }}
+                                  </a>
+                                </div>
+                                <span class="similarity-pill">
+                                  {{ formatScore(source.similarity_score) }} match
+                                </span>
+                              </div>
+                              <div class="citation-chunk-text code-mono">
+                                "{{ source.chunk_text }}"
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                }
+
+                <div class="message-meta assistant-meta">
+                  <span>Gemma 3 1B &bull; RAG</span>
+                  <span>{{ msg.timestamp | date:'shortTime' }}</span>
+                </div>
+              </div>
+            </div>
+          }
+        }
+        <div #bottomAnchor class="bottom-anchor" style="height: 1px; width: 100%; pointer-events: none;"></div>
+      </div>
+    }
+  </div>
+
+  <!-- Bottom Fixed Chat Input Bar -->
+  <footer class="chat-input-footer">
+    <div class="input-card">
+      <form class="input-form" (ngSubmit)="sendMessage()">
+        <!-- Top Options Bar inside Input -->
+        <div class="input-options-bar">
+          <div class="top-k-pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+              <path d="M4 6h16M4 12h16M4 18h7"></path>
+            </svg>
+            <span>Retrieved passages:</span>
+            <select
+              [ngModel]="topK()"
+              (ngModelChange)="topK.set($event)"
+              name="topKSelect"
+              class="top-k-select"
+            >
+              @for (k of availableTopK; track k) {
+                <option [value]="k">{{ k }} chunks</option>
+              }
+            </select>
+          </div>
+
+          <span class="memory-hint">
+            @if (messages().length > 0) {
+              Context window: Active ({{ messages().length }} msgs)
+            } @else {
+              Multi-turn conversational memory enabled
+            }
+          </span>
+        </div>
+
+        <!-- Text Input & Submit -->
+        <div class="input-row">
+          <input
+            type="text"
+            class="chat-text-input"
+            [ngModel]="inputQuery()"
+            (ngModelChange)="inputQuery.set($event)"
+            name="queryInput"
+            placeholder="Ask a question about your documents... (e.g. 'What are the payment deadlines?')"
+            [disabled]="isGenerating()"
+            autocomplete="off"
+          />
+
+          <button
+            type="submit"
+            class="send-btn"
+            [disabled]="!inputQuery().trim() || isGenerating()"
+            title="Send question"
+          >
+            @if (isGenerating()) {
+              <div class="btn-spinner"></div>
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+    <div class="footer-caption">
+      Responses are grounded exclusively on passages retrieved from your uploaded documents via pgvector.
+    </div>
+  </footer>
+</div>

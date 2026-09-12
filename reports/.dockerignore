@@ -1,0 +1,12 @@
+target/
+.mvn/
+.idea/
+.vscode/
+*.class
+*.jar
+*.war
+.git/
+.gitignore
+mvnw
+mvnw.cmd
+README.md
