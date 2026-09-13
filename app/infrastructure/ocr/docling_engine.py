@@ -11,7 +11,6 @@ from app.domain.interfaces.ocr_engine import OCREngineInterface
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode
 from docling.document_converter import DocumentConverter, PdfFormatOption
-from docling.pipeline.native_pdf_pipeline import NativePdfPipeline
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +18,11 @@ logger = logging.getLogger(__name__)
 class DoclingEngine(OCREngineInterface):
     def __init__(self) -> None:
         # Fast model-free converter for digital PDFs (completes in < 1 second)
+        native_opts = PdfPipelineOptions()
+        native_opts.do_ocr = False
         self._native_converter = DocumentConverter(
             format_options={
-                InputFormat.PDF: PdfFormatOption(pipeline_cls=NativePdfPipeline)
+                InputFormat.PDF: PdfFormatOption(pipeline_options=native_opts)
             }
         )
         self._ocr_converter: Optional[DocumentConverter] = None

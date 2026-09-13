@@ -75,7 +75,7 @@ ROUTES = [
 
 def wait_for_apisix(max_attempts=15, delay=2):
     """Wait for APISIX admin API to be responsive."""
-    probe_url = ADMIN_URL.replace("/routes", "")
+    probe_url = ADMIN_URL
     for attempt in range(1, max_attempts + 1):
         try:
             req = urllib.request.Request(
@@ -84,11 +84,17 @@ def wait_for_apisix(max_attempts=15, delay=2):
                 method="GET",
             )
             with urllib.request.urlopen(req, timeout=3) as resp:
-                if resp.status in (200, 404):
+                if resp.status == 200:
                     print(f"APISIX Admin API ready (attempt {attempt})")
                     return True
-        except Exception:
-            print(f"Waiting for APISIX at {probe_url}... ({attempt}/{max_attempts})")
+        except urllib.error.HTTPError as e:
+            if e.code == 200:
+                print(f"APISIX Admin API ready (attempt {attempt})")
+                return True
+            print(f"Waiting for APISIX at {probe_url}... HTTP {e.code} ({attempt}/{max_attempts})")
+            time.sleep(delay)
+        except Exception as e:
+            print(f"Waiting for APISIX at {probe_url}... {e} ({attempt}/{max_attempts})")
             time.sleep(delay)
     return False
 

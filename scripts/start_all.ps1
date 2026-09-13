@@ -32,23 +32,25 @@ if (Test-Path "$ProjectRoot\venv\Scripts\python.exe") {
     python "$ProjectRoot\infra\apisix\configure_apisix.py"
 }
 
+$PythonExe = if (Test-Path "$ProjectRoot\venv\Scripts\python.exe") { "$ProjectRoot\venv\Scripts\python.exe" } else { "python" }
+
 # 3. Launch FastAPI P1 (:8000)
 Write-Host ""
 Write-Host "[3/5] Launching FastAPI P1 (:8000)..." -ForegroundColor Green
-$cmd1 = "`$host.ui.RawUI.WindowTitle = 'DocIntelligence - FastAPI P1 (:8000)'; Set-Location '$ProjectRoot'; if (Test-Path 'venv\Scripts\Activate.ps1') { . .\venv\Scripts\Activate.ps1 }; python -m uvicorn app.main:app --reload --port 8000"
+$cmd1 = "try { `$host.ui.RawUI.WindowTitle = 'DocIntelligence - FastAPI P1 (:8000)' } catch {}; Set-Location '$ProjectRoot'; & '$PythonExe' -m uvicorn app.main:app --reload --port 8000"
 Start-Process $ShellExe -ArgumentList @("-NoExit", "-Command", $cmd1)
 
 # 4. Launch Celery Worker
 Write-Host ""
 Write-Host "[4/5] Launching Celery Background Worker..." -ForegroundColor Green
-$cmd2 = "`$host.ui.RawUI.WindowTitle = 'DocIntelligence - Celery Worker'; Set-Location '$ProjectRoot'; if (Test-Path 'venv\Scripts\Activate.ps1') { . .\venv\Scripts\Activate.ps1 }; python -m celery -A app.infrastructure.celery.celery_app worker --pool=threads --concurrency=2 --loglevel=info"
+$cmd2 = "try { `$host.ui.RawUI.WindowTitle = 'DocIntelligence - Celery Worker' } catch {}; Set-Location '$ProjectRoot'; & '$PythonExe' -m celery -A app.infrastructure.celery.celery_app worker --pool=threads --concurrency=2 --loglevel=info"
 Start-Process $ShellExe -ArgumentList @("-NoExit", "-Command", $cmd2)
 
 # 5. Launch Spring Boot Reports P2 (:8081)
 if ($ReportsRoot -and (Test-Path "$ReportsRoot\mvnw.cmd")) {
     Write-Host ""
     Write-Host "[5/5] Launching Spring Boot Reports P2 (:8081)..." -ForegroundColor Green
-    $cmd3 = "`$host.ui.RawUI.WindowTitle = 'DocIntelligence - Spring Boot Reports (:8081)'; Set-Location '$ReportsRoot'; .\mvnw.cmd spring-boot:run"
+    $cmd3 = "try { `$host.ui.RawUI.WindowTitle = 'DocIntelligence - Spring Boot Reports (:8081)' } catch {}; Set-Location '$ReportsRoot'; .\mvnw.cmd spring-boot:run"
     Start-Process $ShellExe -ArgumentList @("-NoExit", "-Command", $cmd3)
 }
 
@@ -56,7 +58,7 @@ if ($ReportsRoot -and (Test-Path "$ReportsRoot\mvnw.cmd")) {
 if (Test-Path "$FrontendRoot\package.json") {
     Write-Host ""
     Write-Host "[+] Launching Angular Frontend (:4200)..." -ForegroundColor Green
-    $cmd4 = "`$host.ui.RawUI.WindowTitle = 'DocIntelligence - Angular Frontend (:4200)'; Set-Location '$FrontendRoot'; npm start"
+    $cmd4 = "try { `$host.ui.RawUI.WindowTitle = 'DocIntelligence - Angular Frontend (:4200)' } catch {}; Set-Location '$FrontendRoot'; npm start"
     Start-Process $ShellExe -ArgumentList @("-NoExit", "-Command", $cmd4)
 }
 
