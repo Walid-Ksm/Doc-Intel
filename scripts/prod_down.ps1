@@ -10,4 +10,5 @@ Write-Host "Stopping and removing production containers..." -ForegroundColor Yel
 Set-Location $ProjectRoot
 docker compose -f docker-compose.prod.yml down
 
-Write-Host "All production containers stopped successfully.`n" -ForegroundColor Green
+Write-Host "All production containers stopped successfully." -ForegroundColor Green
+Write-Host ""

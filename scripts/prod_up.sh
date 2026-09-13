@@ -21,9 +21,16 @@ if [ ! -f "$PROJECT_ROOT/.env.prod" ]; then
     fi
 fi
 
+# 2. Launch production containers
 echo ""
-echo "Building and launching containers via docker-compose.prod.yml..."
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+if [ "$1" == "--build" ]; then
+    echo "Rebuilding images and starting containers (--build flag active)..."
+    docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+else
+    echo "Launching containers using existing images (instant startup)..."
+    echo "(Hint: pass --build if you modified code/Dockerfiles and want to rebuild: ./scripts/prod_up.sh --build)"
+    docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+fi
 
 echo ""
 echo "============================================================"

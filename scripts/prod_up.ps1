@@ -1,13 +1,19 @@
 # ==============================================================================
-# Document Intelligence Platform — Production Stack Launcher
+# Document Intelligence Platform -- Production Stack Launcher
 # Builds and starts all production containers with unified healthchecks
 # ==============================================================================
+
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $false)]
+    [switch]$Build
+)
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
 
 Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "   Document Intelligence Platform — Production Launcher    " -ForegroundColor Cyan
+Write-Host "   Document Intelligence Platform -- Production Launcher    " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
 Set-Location $ProjectRoot
@@ -20,13 +26,20 @@ if (-not (Test-Path "$ProjectRoot\.env.prod")) {
     }
 }
 
-# 2. Build and launch all production containers
+# 2. Launch production containers
 Write-Host ""
-Write-Host "Building and launching containers via docker-compose.prod.yml..." -ForegroundColor Yellow
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+if ($Build) {
+    Write-Host "Rebuilding images and starting containers (-Build flag active)..." -ForegroundColor Yellow
+    docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+} else {
+    Write-Host "Launching containers using existing images (instant startup)..." -ForegroundColor Green
+    Write-Host "(Hint: pass -Build to rebuild images: .\scripts\prod_up.ps1 -Build)" -ForegroundColor DarkGray
+    docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+}
+
 if ($LASTEXITCODE -ne 0) {
     Write-Host ""
-    Write-Host "Container build or startup failed. Please inspect the error above." -ForegroundColor Red
+    Write-Host "Container startup failed. Please inspect the error above." -ForegroundColor Red
     exit $LASTEXITCODE
 }
 
@@ -42,4 +55,5 @@ Write-Host "  - Spring Boot Reports:     http://localhost:8081" -ForegroundColor
 Write-Host "  - MinIO Storage Console:   http://localhost:9001" -ForegroundColor Gray
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "To view logs: docker compose -f docker-compose.prod.yml logs -f" -ForegroundColor DarkGray
-Write-Host "To stop:      .\scripts\prod_down.ps1`n" -ForegroundColor DarkGray
+Write-Host "To stop:      .\scripts\prod_down.ps1" -ForegroundColor DarkGray
+Write-Host ""
