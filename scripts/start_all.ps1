@@ -6,7 +6,11 @@
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
 $FrontendRoot = Join-Path $ProjectRoot "frontend"
-$ReportsRoot = Resolve-Path (Join-Path $ProjectRoot "..\doc-intelligence-reports") -ErrorAction SilentlyContinue
+$ReportsRoot = if (Test-Path "$ProjectRoot\reports\mvnw.cmd") {
+    Join-Path $ProjectRoot "reports"
+} else {
+    Resolve-Path (Join-Path $ProjectRoot "..\doc-intelligence-reports") -ErrorAction SilentlyContinue
+}
 $ShellExe = if (Get-Command pwsh.exe -ErrorAction SilentlyContinue) { "pwsh.exe" } else { "powershell.exe" }
 
 Write-Host "============================================================" -ForegroundColor Cyan
