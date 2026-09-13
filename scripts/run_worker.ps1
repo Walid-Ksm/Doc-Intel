@@ -10,7 +10,9 @@ if (Test-Path "$ProjectRoot\venv\Scripts\Activate.ps1") {
     & "$ProjectRoot\venv\Scripts\Activate.ps1"
 }
 
+$PythonExe = if (Test-Path "$ProjectRoot\venv\Scripts\python.exe") { "$ProjectRoot\venv\Scripts\python.exe" } else { "python" }
+
 Write-Host "Starting Celery worker for doc_intelligence..." -ForegroundColor Cyan
 Write-Host "Concurrency: 2 threads (Windows pool: threads)" -ForegroundColor Gray
 
-celery -A app.infrastructure.celery.celery_app worker --pool=threads --concurrency=2 --loglevel=info
+& $PythonExe -m celery -A app.infrastructure.celery.celery_app worker --pool=threads --concurrency=2 --loglevel=info
