@@ -34,7 +34,6 @@ class DoclingEngine(OCREngineInterface):
             opts = PdfPipelineOptions()
             opts.do_ocr = True
             opts.table_structure_options.mode = TableFormerMode.FAST
-            opts.ocr_options.scale = 2.0
             opts.accelerator_options.num_threads = 4
 
             self._ocr_converter = DocumentConverter(
