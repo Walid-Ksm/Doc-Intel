@@ -142,6 +142,8 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma3:1b}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:9080,http://localhost}
+    volumes:
+      - huggingface_cache:/home/appuser/.cache
     depends_on:
       postgres:
         condition: service_healthy
@@ -163,6 +165,8 @@ services:
     command: ["celery", "-A", "app.infrastructure.celery.celery_app", "worker", "--pool=threads", "--concurrency=4", "--loglevel=info"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+      - huggingface_cache:/home/appuser/.cache
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-walid}:${POSTGRES_PASSWORD:-devpassword}@postgres:5432/${POSTGRES_DB:-doc_intelligence}
       MINIO_ENDPOINT: http://minio:9000
@@ -247,6 +251,7 @@ volumes:
   minio_data:
   redis_data:
   etcd_data:
+  huggingface_cache:
 
 networks:
   docnet:
